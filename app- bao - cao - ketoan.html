@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Mini App - Quản lý công việc kế toán</title>
+
+  <style>
+    :root {
+      --bg: #0b0f14;
+      --card: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      --muted: #a3b0c0;
+      --text: #e9f0f7;
+      --primary: #4cc9f0;
+      --accent: #a1ffce;
+      --danger: #ff6b6b;
+      --success: #5ad68f;
+      --ring: rgba(76,201,240,.45);
+      --radius: 14px;
+      --glass: rgba(255,255,255,.03);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;padding:28px;font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background: radial-gradient(1200px 500px at 10% -10%, #0f1722 0%, var(--bg) 50%),
+                  radial-gradient(900px 500px at 120% 10%, #102033 0%, rgba(16,32,51,0) 50%),
+                  var(--bg);
+      color:var(--text);
+      -webkit-font-smoothing:antialiased;
+    }
+    .container{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:320px 1fr;gap:20px}
+    header.app-header{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;padding:16px;border-radius:12px;background:var(--card);border:1px solid rgba(255,255,255,.05);box-shadow:0 10px 30px rgba(0,0,0,.4)}
+    .brand{display:flex;gap:12px;align-items:center}
+    .logo{width:48px;height:48px;border-radius:10px;background:linear-gradient(180deg,#1b7aa3,#11506c);display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff}
+    .title{font-weight:800;font-size:18px;color:var(--primary)}
+    .hdr-info{display:flex;gap:14px;align-items:center}
+    .info-card{background:var(--glass);padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.04)}
+    .info-card .label{font-size:12px;color:var(--muted)}
+    .info-card .value{font-weight:700}
+    .small{font-size:13px;color:var(--muted)}
+
+    /* Left sidebar/settings */
+    aside.left{background:var(--card);border-radius:12px;padding:14px;border:1px solid rgba(255,255,255,.05);height:fit-content}
+    .field{margin-bottom:12px}
+    label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+    input[type=text], select{width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.02);color:var(--text);outline:none}
+    input[type=text]:focus, select:focus{box-shadow:0 0 0 6px var(--ring);border-color:var(--ring)}
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.06);background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,.01));color:var(--text);cursor:pointer;font-weight:700}
+    .btn.primary{background:linear-gradient(180deg,#1b7aa3,#11506c);border-color:rgba(76,201,240,.45)}
+    .btn.warn{background:linear-gradient(180deg,#8a5c00,#5e3f00);}
+
+    /* Main area */
+    main.card{background:var(--card);border-radius:12px;padding:14px;border:1px solid rgba(255,255,255,.05);box-shadow:0 10px 30px rgba(0,0,0,.35)}
+    .tabs{display:flex;gap:10px;margin-bottom:12px}
+    .tab-btn{padding:8px 12px;border-radius:10px;background:transparent;border:1px solid rgba(255,255,255,.03);color:var(--muted);cursor:pointer;font-weight:700}
+    .tab-btn.active{background:linear-gradient(180deg,#08333f,#0b2730);color:var(--primary);border-color:var(--ring);box-shadow:0 6px 20px var(--ring)}
+
+    .grid-days{display:grid;grid-template-columns:repeat(1,1fr);gap:12px}
+    @media(min-width:720px){.grid-days{grid-template-columns:repeat(2,1fr)}}
+    @media(min-width:1100px){.grid-days{grid-template-columns:repeat(3,1fr)}}
+
+    .day-card{background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01));padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.04);box-shadow:0 8px 22px rgba(0,0,0,.35)}
+    .day-card h3{margin:0 0 8px;color:var(--accent);font-size:14px}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.04);text-align:left;font-size:13px}
+    th{color:var(--muted);font-weight:700}
+    .row-actions{display:flex;gap:6px;justify-content:flex-end}
+
+    .footer-actions{display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap}
+
+    .total-row{text-align:right;font-weight:800;color:var(--accent);margin-top:8px}
+
+    .pill{display:inline-flex;align-items:center;padding:6px 10px;border-radius:999px;font-weight:800;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.03);font-size:13px}
+    .danger{background:linear-gradient(180deg,#6b2020,#3a1010);border-color:rgba(255,107,107,.25)}
+
+    .muted{color:var(--muted)}
+    .smallmuted{font-size:12px;color:var(--muted)}
+
+    /* input compact inside table */
+    .mini-input{padding:6px;border-radius:8px;border:1px solid rgba(255,255,255,.04);background:rgba(255,255,255,.02);color:var(--text);width:100%}
+    .icon-btn{background:transparent;border:0;color:var(--muted);cursor:pointer;font-size:16px;padding:6px;border-radius:8px}
+    .icon-btn:hover{color:var(--primary);background:rgba(255,255,255,.02)}
+  </style>
+
+  <!-- SheetJS for Excel export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <header class="app-header">
+      <div class="brand">
+        <div class="logo">KT</div>
+        <div>
+          <div class="title">Kế Toán • Work Manager</div>
+          <div class="small">Mini app quản lý công việc — giao diện hiện đại</div>
+        </div>
+      </div>
+
+      <div class="hdr-info">
+        <div class="info-card">
+          <div class="label">Nhân sự</div>
+          <div id="hdrName" class="value">—</div>
+        </div>
+        <div class="info-card">
+          <div class="label">Phòng ban</div>
+          <div id="hdrDept" class="value">—</div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Left: settings -->
+    <aside class="left">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div style="font-weight:800">Cấu hình nhanh</div>
+        <div class="smallmuted">Lưu trên máy</div>
+      </div>
+
+      <div class="field">
+        <label>Nhập tên nhân sự</label>
+        <input type="text" id="inputName" placeholder="Nguyễn Văn A">
+      </div>
+
+      <div class="field">
+        <label>Phòng ban</label>
+        <input type="text" id="inputDept" placeholder="Kế toán">
+      </div>
+
+      <div class="field">
+        <label>Chọn tháng để xem/nhập</label>
+        <select id="monthSelect" onchange="generateMonth()">
+          <option value="1">Tháng 1</option>
+          <option value="2">Tháng 2</option>
+          <option value="3">Tháng 3</option>
+          <option value="4">Tháng 4</option>
+          <option value="5">Tháng 5</option>
+          <option value="6">Tháng 6</option>
+          <option value="7">Tháng 7</option>
+          <option value="8">Tháng 8</option>
+          <option value="9">Tháng 9</option>
+          <option value="10">Tháng 10</option>
+          <option value="11">Tháng 11</option>
+          <option value="12">Tháng 12</option>
+        </select>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="btn primary" onclick="saveHeader()">💾 Lưu thông tin</button>
+        <button class="btn" onclick="resetHeader()">🔁 Reset</button>
+      </div>
+
+      <div style="margin-top:18px;border-top:1px solid rgba(255,255,255,.03);padding-top:12px">
+        <div style="font-weight:800;margin-bottom:6px">Xuất / Sao lưu</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn" onclick="exportJSON()">⬇️ Xuất JSON</button>
+          <button class="btn primary" onclick="exportExcel()">⬇️ Xuất Excel</button>
+          <button class="btn warn" onclick="clearAll()">🗑️ Xóa dữ liệu</button>
+        </div>
+        <div class="smallmuted" style="margin-top:8px">Lưu: <b>localStorage</b> trên trình duyệt (chỉ trên máy này).</div>
+      </div>
+    </aside>
+
+    <!-- Main content -->
+    <main class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="font-weight:800">Nhập công việc & Báo cáo</div>
+        <div class="smallmuted">Hệ số: S=0.3, M=1, L=2, XL=3</div>
+      </div>
+
+      <div class="tabs" style="margin-top:12px">
+        <button class="tab-btn active" id="tabEntryBtn" onclick="showTab('entry')">📥 Nhập công việc</button>
+        <button class="tab-btn" id="tabReportBtn" onclick="showTab('report')">📊 Báo cáo</button>
+      </div>
+
+      <!-- ENTRY -->
+      <section id="entry">
+        <div class="grid-days" id="daysContainer"></div>
+      </section>
+
+      <!-- REPORT -->
+      <section id="report" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <div style="font-weight:800">Báo cáo tổng hợp</div>
+          <div class="smallmuted">Hiển thị tất cả công việc đã nhập</div>
+        </div>
+
+        <div style="overflow:auto">
+          <table style="min-width:800px">
+            <thead>
+              <tr>
+                <th>Ngày</th><th>Nhân sự</th><th>Phòng ban</th><th>Danh mục</th><th>Mô tả</th><th>SL</th><th>Loại</th><th>Điểm</th><th></th>
+              </tr>
+            </thead>
+            <tbody id="reportTable"></tbody>
+            <tfoot>
+              <tr>
+                <td colspan="7" class="total-row">Tổng điểm tháng</td>
+                <td id="monthTotal" class="total-row">0</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+<script>
+  /*********** Constants & helpers ***********/
+  const POINTS = { S: 0.3, M: 1, L: 2, XL: 3 };
+  const STORAGE_KEY = 'kt_tasks_v1';
+  const HDR_KEY = 'kt_header_v1';
+
+  function daysInMonth(month, year){ return new Date(year, month, 0).getDate(); }
+  function money(n){ return new Intl.NumberFormat('vi-VN',{maximumFractionDigits:2}).format(n); }
+
+  /*********** Header handling ***********/
+  function loadHeader(){
+    const hdr = JSON.parse(localStorage.getItem(HDR_KEY) || '{}');
+    document.getElementById('inputName').value = hdr.name || '';
+    document.getElementById('inputDept').value = hdr.dept || '';
+    document.getElementById('hdrName').textContent = hdr.name || '—';
+    document.getElementById('hdrDept').textContent = hdr.dept || '—';
+  }
+  function saveHeader(){
+    const name = document.getElementById('inputName').value.trim();
+    const dept = document.getElementById('inputDept').value.trim();
+    localStorage.setItem(HDR_KEY, JSON.stringify({ name, dept }));
+    loadHeader();
+    alert('Đã lưu thông tin nhân sự & phòng ban.');
+  }
+  function resetHeader(){
+    if(confirm('Reset tên nhân sự và phòng ban về trống?')){
+      localStorage.removeItem(HDR_KEY);
+      loadHeader();
+    }
+  }
+
+  /*********** Task data ***********/
+  function loadTasks(){ return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
+  function saveTasks(arr){ localStorage.setItem(STORAGE_KEY, JSON.stringify(arr)); }
+
+  // Create UI days for selected month
+  function generateMonth(){
+    const month = parseInt(document.getElementById('monthSelect').value);
+    const container = document.getElementById('daysContainer');
+    container.innerHTML = '';
+    const year = new Date().getFullYear();
+    const days = daysInMonth(month, year);
+    for(let d=1; d<=days; d++){
+      const card = document.createElement('div');
+      card.className = 'day-card';
+      card.innerHTML = `
+        <h3>Ngày ${d}/${month}/${year}</h3>
+        <table>
+          <thead><tr><th style="width:18%">Danh mục</th><th>Mô tả</th><th style="width:8%">SL</th><th style="width:10%">Loại</th><th style="width:12%">Điểm</th><th style="width:8%"></th></tr></thead>
+          <tbody id="tasks-${year}-${month}-${d}"></tbody>
+          <tfoot>
+            <tr>
+              <td><input id="cat-${year}-${month}-${d}" class="mini-input" placeholder="VD: Kiểm kê"></td>
+              <td><input id="desc-${year}-${month}-${d}" class="mini-input" placeholder="Mô tả ngắn"></td>
+              <td><input id="qty-${year}-${month}-${d}" type="number" min="1" value="1" class="mini-input"></td>
+              <td>
+                <select id="type-${year}-${month}-${d}" class="mini-input">
+                  <option value="S">S</option><option value="M">M</option><option value="L">L</option><option value="XL">XL</option>
+                </select>
+              </td>
+              <td><span id="pt-${year}-${month}-${d}">0</span></td>
+              <td><button class="btn" onclick="addTask(${year},${month},${d})">➕ Thêm</button></td>
+            </tr>
+            <tr><td colspan="6" class="total-row">Tổng điểm: <span id="total-${year}-${month}-${d}">0</span></td></tr>
+          </tfoot>
+        </table>
+      `;
+      container.appendChild(card);
+    }
+    renderDayTasks();
+  }
+
+  // Add task (auto attach header name & dept)
+  function addTask(year,month,day){
+    const cat = document.getElementById(`cat-${year}-${month}-${day}`).value.trim();
+    const desc = document.getElementById(`desc-${year}-${month}-${day}`).value.trim();
+    const qty = parseFloat(document.getElementById(`qty-${year}-${month}-${day}`).value) || 1;
+    const type = document.getElementById(`type-${year}-${month}-${day}`).value;
+    const pts = (POINTS[type]||0) * qty;
+
+    const hdr = JSON.parse(localStorage.getItem(HDR_KEY) || '{}');
+    if(!hdr.name || !hdr.dept){
+      if(!confirm('Bạn chưa nhập Nhân sự/Phòng ban. Thêm công việc nhưng thông tin nhân sự/phòng ban sẽ để trống. Bạn muốn tiếp tục?')===true) return;
+    }
+
+    const data = loadTasks();
+    data.push({
+      date: `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`,
+      staff: hdr.name||'',
+      dept: hdr.dept||'',
+      cat, desc, qty, type, points: pts,
+      id: crypto.randomUUID()
+    });
+    saveTasks(data);
+
+    // clear inputs
+    document.getElementById(`cat-${year}-${month}-${day}`).value='';
+    document.getElementById(`desc-${year}-${month}-${day}`).value='';
+    document.getElementById(`qty-${year}-${month}-${day}`).value=1;
+    document.getElementById(`type-${year}-${month}-${day}`).value='S';
+
+    renderDayTasks();
+  }
+
+  function renderDayTasks(){
+    const data = loadTasks();
+    // clear all day task bodies
+    document.querySelectorAll("[id^='tasks-']").forEach(tb => tb.innerHTML = '');
+    // append rows
+    data.forEach(t => {
+      const [y,m,d] = t.date.split('-');
+      const tb = document.getElementById(`tasks-${parseInt(y)}-${parseInt(m)}-${parseInt(d)}`);
+      if(tb){
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${escapeHtml(t.cat||'')}</td>
+                        <td>${escapeHtml(t.desc||'')}</td>
+                        <td>${t.qty}</td>
+                        <td>${t.type}</td>
+                        <td>${t.points}</td>
+                        <td class="row-actions">
+                          <button class="icon-btn" title="Sửa" onclick="editTask('${t.id}')">✏️</button>
+                          <button class="icon-btn" title="Xóa" onclick="deleteTask('${t.id}')">🗑️</button>
+                        </td>`;
+        tb.appendChild(tr);
+      }
+    });
+
+    // update totals per day
+    const grouped = {};
+    data.forEach(t => { grouped[t.date] = (grouped[t.date] || 0) + (t.points||0); });
+    Object.keys(grouped).forEach(date => {
+      const [y,m,d] = date.split('-');
+      const el = document.getElementById(`total-${parseInt(y)}-${parseInt(m)}-${parseInt(d)}`);
+      if(el) el.textContent = grouped[date];
+    });
+
+    // Also update small points in foot row (pt-...) for the currently input row (recompute on change)
+  }
+
+  /*********** Edit / Delete ***********/
+  function editTask(id){
+    const arr = loadTasks();
+    const idx = arr.findIndex(x=>x.id===id);
+    if(idx===-1) return alert('Không tìm thấy công việc.');
+
+    const t = arr[idx];
+    // open quick modal-ish prompt (simple)
+    const newCat = prompt('Sửa danh mục', t.cat) || t.cat;
+    const newDesc = prompt('Sửa mô tả', t.desc) || t.desc;
+    const newQty = parseFloat(prompt('Sửa SL', t.qty)) || t.qty;
+    const newType = prompt('Sửa loại (S/M/L/XL)', t.type) || t.type;
+    const newPoints = (POINTS[newType]||0)*newQty;
+
+    arr[idx] = {...t, cat:newCat, desc:newDesc, qty:newQty, type:newType, points:newPoints};
+    saveTasks(arr);
+    renderDayTasks();
+    renderReport();
+  }
+
+  function deleteTask(id){
+    if(!confirm('Xác nhận xóa công việc này?')) return;
+    let arr = loadTasks();
+    arr = arr.filter(x=>x.id!==id);
+    saveTasks(arr);
+    renderDayTasks();
+    renderReport();
+  }
+
+  /*********** Report rendering ***********/
+  function showTab(id){
+    document.getElementById('entry').style.display = id==='entry' ? '' : 'none';
+    document.getElementById('report').style.display = id==='report' ? '' : 'none';
+    document.getElementById('tabEntryBtn').classList.toggle('active', id==='entry');
+    document.getElementById('tabReportBtn').classList.toggle('active', id==='report');
+    if(id==='report') renderReport();
+  }
+
+  function renderReport(){
+    const data = loadTasks();
+    const tb = document.getElementById('reportTable');
+    if(!data.length){ tb.innerHTML = `<tr><td colspan="9" class="muted">Chưa có công việc</td></tr>`; document.getElementById('monthTotal').textContent=0; return; }
+
+    // display each task row
+    tb.innerHTML = data.map(t => {
+      return `<tr>
+        <td>${t.date}</td>
+        <td>${escapeHtml(t.staff||'')}</td>
+        <td>${escapeHtml(t.dept||'')}</td>
+        <td>${escapeHtml(t.cat||'')}</td>
+        <td>${escapeHtml(t.desc||'')}</td>
+        <td>${t.qty}</td>
+        <td>${t.type}</td>
+        <td>${t.points}</td>
+        <td class="row-actions">
+          <button class="icon-btn" onclick="editTask('${t.id}')">✏️</button>
+          <button class="icon-btn" onclick="deleteTask('${t.id}')">🗑️</button>
+        </td>
+      </tr>`;
+    }).join('');
+
+    const total = data.reduce((s,x)=>s + (x.points||0),0);
+    document.getElementById('monthTotal').textContent = total;
+  }
+
+  /*********** Export functions ***********/
+  function exportJSON(){
+    const data = loadTasks();
+    const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'congviec_export.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  }
+
+  function exportExcel(){
+    const data = loadTasks();
+    if(data.length===0) return alert('Chưa có công việc để xuất.');
+    const hdr = JSON.parse(localStorage.getItem(HDR_KEY) || '{}');
+
+    // Prepare sheet rows
+    const ws_data = [
+      ["Ngày","Nhân sự","Phòng ban","Danh mục","Mô tả","SL","Loại","Điểm"]
+    ];
+    data.forEach(t => {
+      ws_data.push([t.date, t.staff || hdr.name || '', t.dept || hdr.dept || '', t.cat, t.desc, t.qty, t.type, t.points]);
+    });
+    const total = data.reduce((s,x)=>s + (x.points||0),0);
+    ws_data.push([]); // blank row
+    ws_data.push(["","","","","","Tổng điểm","", total]);
+
+    // create workbook
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(ws_data);
+
+    // Optional: set column widths
+    const wscols = [{wpx:90},{wpx:120},{wpx:120},{wpx:120},{wpx:220},{wpx:50},{wpx:50},{wpx:60}];
+    ws['!cols'] = wscols;
+
+    XLSX.utils.book_append_sheet(wb, ws, "Công việc");
+    XLSX.writeFile(wb, `BaoCao_CongViec_${new Date().toISOString().slice(0,10)}.xlsx`);
+  }
+
+  /*********** Utility ***********/
+  function escapeHtml(s){ if(!s) return ''; return s.replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+  function clearAll(){
+    if(!confirm('Xóa toàn bộ dữ liệu công việc đã lưu (trên trình duyệt này)?')) return;
+    localStorage.removeItem(STORAGE_KEY);
+    renderDayTasks();
+    renderReport();
+    alert('Đã xóa dữ liệu.');
+  }
+
+  /*********** Init ***********/
+  // default month to current month
+  document.getElementById('monthSelect').value = (new Date()).getMonth()+1;
+  loadHeader();
+  generateMonth();
+  renderReport();
+
+  // small: update header display live when typing
+  document.getElementById('inputName').addEventListener('input', e => {
+    document.getElementById('hdrName').textContent = e.target.value || '—';
+  });
+  document.getElementById('inputDept').addEventListener('input', e => {
+    document.getElementById('hdrDept').textContent = e.target.value || '—';
+  });
+</script>
+</body>
+</html>
